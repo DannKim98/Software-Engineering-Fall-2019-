@@ -86,7 +86,7 @@ public class TestRummyCode {
             rummy.finishMeld();
             rummy.discard(rummy.getHandOfPlayer(rummy.getCurrentPlayer())[0]);
         }
-        
+        System.out.println(rummy.getTopCardOfDiscardPile());
         assertTrue("Long game, player", rummy.getCurrentPlayer() == 2);
         assertTrue("Long game, cards in deck", rummy.getNumCardsInDeck() == 34);
         assertTrue("Long game, top card of discard", rummy.getTopCardOfDiscardPile().equals("2H"));
@@ -162,7 +162,6 @@ public class TestRummyCode {
         
         rummy.initialDeal();
         rummy.drawFromDeck();
-
         try {
             rummy.meld("AM", "JM", "8M");
             fail("Meld exception 1");
@@ -444,6 +443,7 @@ public class TestRummyCode {
         rummy.meld("6D", "6H", "6S", "6C", "6M");
         rummy.finishMeld();
         rummy.discard("4S");
+        
 
         assertTrue("Game 2, turn 1, melds", rummy.getNumMelds() == 2);
         assertTrue("Game 2, turn 1, deck", rummy.getNumCardsInDeck() == 43);
@@ -613,7 +613,7 @@ public class TestRummyCode {
 
         // turn 3
         rummy.drawFromDiscard();
-        rummy.addToMeld(0, "AS", "AM");
+       	rummy.addToMeld(0, "AS", "AM");
         rummy.finishMeld();
         rummy.discard("4S");
         
@@ -665,8 +665,8 @@ public class TestRummyCode {
         // turn 1
         rummy.drawFromDiscard();
         rummy.meld("AC", "2C", "3C", "4C", "5C", "6C");
-        rummy.addToMeld(0, "7C", "8C", "9C", "10C", "JC");
-
+        rummy.addToMeld(0, "7C", "8C", "9C", "10C", "JC");      
+        
         assertTrue("Game 6, turn 1, melds", rummy.getNumMelds() == 1);
         assertTrue("Game 6, turn 1, deck", rummy.getNumCardsInDeck() == 44);
         assertTrue("Game 6, turn 1, meld", rummy.getMeld(0).length == 11);

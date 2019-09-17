@@ -1,5 +1,6 @@
 package kz.edu.nu.cs.se.hw;
 
+import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,9 +32,9 @@ public class Rummy implements PlayableRummy {
 	private ArrayList<String> cardsInDiscardPile =new ArrayList<String>();
 	private Map <Integer, String[]> handOfPlayer = new HashMap<Integer, String[]>();
 	private ArrayList<String[]> melds = new ArrayList<String[]>();
-	private int winner;
 	private String lastFromDP = new String();
 	private char[] validSequence = {'A', '2', '3', '4', '5', '6', '7', '8', '9', '1','J', 'Q', 'K', 'A'};
+	private boolean[] canRummy;
 	
     public Rummy(String... players) {
     		this.players = players;
@@ -44,6 +45,7 @@ public class Rummy implements PlayableRummy {
             	throw new RummyException("Too many players", RummyException.EXPECTED_FEWER_PLAYERS);
             }
     		step = Steps.WAITING;
+    		canRummy = new boolean[players.length];
     		for (String rank : ranks) {
     			for (String suit : suits) {
     				cardsInDeck.add(rank + suit);
@@ -80,7 +82,7 @@ public class Rummy implements PlayableRummy {
     @Override
     public String getTopCardOfDiscardPile() {
     	if (cardsInDiscardPile.size() == 0) {
-    		throw new RummyException();
+    		throw new RummyException("Discard pile is empty");
     	}
         return cardsInDiscardPile.get(0);
     }
@@ -137,7 +139,7 @@ public class Rummy implements PlayableRummy {
     @Override
     public int isFinished() {
         if (step == Steps.FINISHED) {
-        	return winner;
+        	return currentPlayer;
         }
         return -1;
     }
@@ -256,14 +258,6 @@ public class Rummy implements PlayableRummy {
         	handOfPlayer.put(5, hands6);
         	
         }        
-//        for (int i = 0; i < players.length; i++) {
-//        	String[] hand = new String[numberOfCards];
-//        	for (int j = 0; j < numberOfCards; j++) {
-//        		hand[j] = cardsInDeck.get(0);
-//        		cardsInDeck.remove(0);
-//        	}
-//        	handOfPlayer.put(i, hand); 
-//        }
         cardsInDiscardPile.add(0, cardsInDeck.get(0));
         cardsInDeck.remove(0);
         step = Steps.DRAW;   
@@ -274,14 +268,17 @@ public class Rummy implements PlayableRummy {
     	if (step != Steps.DRAW) {
         	throw new RummyException("Expected draw step", RummyException.EXPECTED_DRAW_STEP);
     	}
+    	if (cardsInDiscardPile.size() == 0) {
+            throw new RummyException("Discard Pile is empty", RummyException.NOT_VALID_DISCARD);
+    	}
     	String[] oldHand = this.getHandOfPlayer(currentPlayer);
     	String[] newHand = new String[oldHand.length + 1];
-    	newHand[0] = cardsInDiscardPile.get(0);
+    	for (int i = 0; i < oldHand.length; i++) {
+    		newHand[i] = oldHand[i];
+    	}
+    	newHand[oldHand.length] = cardsInDiscardPile.get(0);
     	lastFromDP = cardsInDiscardPile.get(0);
     	cardsInDiscardPile.remove(0);
-    	for (int i = 0; i < oldHand.length; i++) {
-    		newHand[i+1] = oldHand[i];
-    	}
         handOfPlayer.replace(currentPlayer, newHand);
         step = Steps.MELD;
     }
@@ -294,15 +291,20 @@ public class Rummy implements PlayableRummy {
     	String[] oldHand = this.getHandOfPlayer(currentPlayer);
     	String[] newHand = new String[oldHand.length + 1];
     	if (cardsInDeck.size() == 0) {
-    		cardsInDeck = cardsInDiscardPile;
-    		cardsInDeck.clear();
-    		Collections.reverse(cardsInDeck);	
-    	}
-    	newHand[0] = cardsInDeck.get(0);
-    	cardsInDeck.remove(0);
+    		cardsInDeck = new ArrayList<>(cardsInDiscardPile);
+    		cardsInDiscardPile.clear();
+    		Collections.reverse(cardsInDeck);
+    		for (String str : cardsInDeck) {
+    			 System.out.print(str + " ");
+    		}System.out.println("");
+    		cardsInDiscardPile.add(0, cardsInDeck.get(0));
+        	cardsInDeck.remove(0);
+    	}    	
     	for (int i = 0; i < oldHand.length; i++) {
-    		newHand[i+1] = oldHand[i];
+    		newHand[i] = oldHand[i];
     	}
+    	newHand[oldHand.length] = cardsInDeck.get(0);
+    	cardsInDeck.remove(0);
         handOfPlayer.replace(currentPlayer, newHand);
         step = Steps.MELD;
         
@@ -315,6 +317,14 @@ public class Rummy implements PlayableRummy {
     	}
     	if (cards.length < 3 || cards.length > 13) {
     		throw new RummyException("Not valid meld", RummyException.NOT_VALID_MELD);
+    	}
+    	
+    	String[] oldHand = this.getHandOfPlayer(currentPlayer);
+    	List<String> listHand = Arrays.asList(oldHand);
+    	for (String card : cards) {
+    		if(!listHand.contains(card)) {
+    			throw new RummyException("Not in hand", RummyException.EXPECTED_CARDS);
+    		}
     	}
     	
     	boolean isValid = true;
@@ -331,9 +341,9 @@ public class Rummy implements PlayableRummy {
     		}
     	}
     	
-    	if (cards[0].charAt(1) == cards[1].charAt(1)) {
+    	if (cards[0].charAt(cards[0].length() - 1) == cards[1].charAt(cards[1].length() - 1)) {
     		for (int i = 2; i < cards.length; i++) {
-    			if ((cards[i].charAt(1) != cards[1].charAt(1))){
+    			if ((cards[i].charAt(cards[i].length() - 1) != cards[1].charAt(cards[i].length() - 1))){
     				isValid = false;
     				break;
     			}
@@ -357,35 +367,40 @@ public class Rummy implements PlayableRummy {
     			} index++;
     		}
     		if (isValid == false) {
-    			throw new RummyException("Not valid meld", RummyException.NOT_VALID_MELD);
+    			throw new RummyException("Not valid meld no order", RummyException.NOT_VALID_MELD);
     		}
     	}
     		
-    	String[] oldHand = this.getHandOfPlayer(currentPlayer);
-    	boolean inHand;
-    	for (String card : cards) {
-    		inHand = false;
-    		for (String cur : oldHand) {
-    			if (card == cur) {
-    				inHand = true;
-    			}
-    		}if (inHand == false) {
-    			throw new RummyException("Not in hand", RummyException.EXPECTED_CARDS);
-    		}
-    	}    	
-    	melds.add(0, cards);
-    	for (String card : cards) {
-    		int index = 0;
-    		for (String cur : oldHand) {
-    			if (card == cur) {
-    				for(int i = index; i < oldHand.length -1; i++){
-    		            oldHand[i] = oldHand[i + 1];
-    		    	}
-    			}
-    			index += 1;
-    		}
-    		handOfPlayer.replace(currentPlayer, oldHand);
+    	
+    	melds.add(melds.size(), cards);
+    	ArrayList<String> tempHand = new ArrayList<String>();
+    	for (String card : oldHand) {
+    		tempHand.add(0, card);
     	}
+    	
+    	for (int i = 0; i < oldHand.length; i++) {
+    		for (String card : cards) {
+    			if (card == oldHand[i]) {
+    				tempHand.remove(card);
+    				break;
+    			}
+    		}
+    	}
+    	
+    	String[] newHand = new String[tempHand.size()];
+    	for (int i = 0; i < tempHand.size(); i++) {
+    		newHand[i] = tempHand.get(i);
+    	}
+    	
+    	handOfPlayer.replace(currentPlayer, newHand);
+    	canRummy[currentPlayer] = false;
+    	
+      	if (step == Steps.RUMMY && this.getHandOfPlayer(currentPlayer).length <= 1) {
+            step = Steps.FINISHED;
+        }
+        if (this.getHandOfPlayer(currentPlayer).length == 0) {
+            step = Steps.FINISHED;
+        }
     }
 
     @Override
@@ -396,68 +411,95 @@ public class Rummy implements PlayableRummy {
     	if (meldIndex >= melds.size()) {
     		throw new RummyException("Not valid index of meld", RummyException.NOT_VALID_INDEX_OF_MELD);
     	}
+    	
+    	String[] oldHand = this.getHandOfPlayer(currentPlayer);
+    	List<String> listHand = Arrays.asList(oldHand);
+    	for (String card : cards) {
+    		if(!listHand.contains(card)) {
+    			throw new RummyException("Not in hand", RummyException.EXPECTED_CARDS);
+    		}
+    	}
+    	
     	String[] meldToAdd = melds.get(meldIndex);
     	boolean isSameRank = false;
+    	
     	if (meldToAdd[0].charAt(0) == meldToAdd[1].charAt(0)) {
     		isSameRank = true;
     		for (String card : cards) {
     			if(card.charAt(0) != meldToAdd[0].charAt(0)) {
-    				throw new RummyException("Not valid meld", RummyException.NOT_VALID_MELD);
+    				throw new RummyException("Not valid meld1", RummyException.NOT_VALID_MELD);
     			}
     		}
     	}
     	if (meldToAdd[0].charAt(1) == meldToAdd[1].charAt(1)) {
     		for (String card : cards) {
-    			if(card.charAt(1) != meldToAdd[0].charAt(1)) {
-    				throw new RummyException("Not valid meld", RummyException.NOT_VALID_MELD);
+    			if(card.charAt(card.length() - 1) != meldToAdd[0].charAt(meldToAdd[0].length() - 1)) {
+    				throw new RummyException("Not valid meld2", RummyException.NOT_VALID_MELD);
     			}
     		}
     		
     	}
-    	
-    	String[] oldHand = this.getHandOfPlayer(currentPlayer);
-    	boolean inHand;
-    	for (String card : cards) {
-    		inHand = false;
-    		for (String cur : oldHand) {
-    			if (card == cur) {
-    				inHand = true;
-    			}
-    		}if (inHand == false) {
-    			throw new RummyException("Not in hand", RummyException.EXPECTED_CARDS);
-    		}
-    	}
-    	int length = meldToAdd.length + cards.length;
-    	String[] updatedMeld = new String[length];
-        int pos = 0;
-        for (String element : meldToAdd) {
-        	updatedMeld[pos] = element;
-            pos++;
-        }
-        for (String element : cards) {
-        	updatedMeld[pos] = element;
-            pos++;
-        }
-    	
     	if (isSameRank == true) {
+	    	int length = meldToAdd.length + cards.length;
+	    	String[] updatedMeld = new String[length];
+	        int pos = 0;
+	        for (String element : meldToAdd) {
+	        	updatedMeld[pos] = element;
+	            pos++;
+	        }
+	        for (String element : cards) {
+	        	updatedMeld[pos] = element;
+	            pos++;
+	        }
     		melds.set(meldIndex, updatedMeld);
     	}
     	else {
     		char start = meldToAdd[0].charAt(0);
     		char end = meldToAdd[meldToAdd.length -1].charAt(0);
+    		System.out.println("not implemented yet");
+    		
+    		int length = meldToAdd.length + cards.length;
+	    	String[] updatedMeld = new String[length];
+	        int pos = 0;
+	        for (String element : meldToAdd) {
+	        	updatedMeld[pos] = element;
+	            pos++;
+	        }
+	        for (String element : cards) {
+	        	updatedMeld[pos] = element;
+	            pos++;
+	        }
+    		melds.set(meldIndex, updatedMeld);
     	}
-    	for (String card : cards) {
-    		int index = 0;
-    		for (String cur : oldHand) {
-    			if (card == cur) {
-    				for(int i = index; i < oldHand.length -1; i++){
-    		            oldHand[i] = oldHand[i + 1];
-    		    	}
+    	
+    	ArrayList<String> tempHand = new ArrayList<String>();
+    	for (String card : oldHand) {
+    		tempHand.add(0, card);
+    	}
+    	
+    	for (int i = 0; i < oldHand.length; i++) {
+    		for (String card : cards) {
+    			if (card == oldHand[i]) {
+    				tempHand.remove(card);
+    				break;
     			}
-    			index += 1;
     		}
-    		handOfPlayer.replace(currentPlayer, oldHand);
     	}
+    	
+    	String[] newHand = new String[tempHand.size()];
+    	for (int i = 0; i < tempHand.size(); i++) {
+    		newHand[i] = tempHand.get(i);
+    	}
+    	
+    	handOfPlayer.replace(currentPlayer, newHand);
+    	canRummy[currentPlayer] = false;
+    	
+    	if (step == Steps.RUMMY && this.getHandOfPlayer(currentPlayer).length <= 1) {
+            step = Steps.FINISHED;
+        }
+        if (this.getHandOfPlayer(currentPlayer).length == 0) {
+            step = Steps.FINISHED;
+        }
         
     }
 
@@ -466,8 +508,10 @@ public class Rummy implements PlayableRummy {
     	if (step != Steps.MELD) {
         	throw new RummyException("Expected meld step", RummyException.EXPECTED_MELD_STEP);
     	}
-    	step = Steps.RUMMY;      
-    	// TODO Auto-generated method stub
+    	if (canRummy[currentPlayer] == false) {
+    		throw new RummyException("not rummy", RummyException.RUMMY_NOT_DEMONSTRATED);
+    	}
+    	step = Steps.RUMMY; 
     }
 
     @Override
@@ -475,10 +519,15 @@ public class Rummy implements PlayableRummy {
     	if (step != Steps.MELD && step != Steps.RUMMY) {
         	throw new RummyException("Expected meld or rummy step", RummyException.EXPECTED_MELD_STEP_OR_RUMMY_STEP);
     	}
-    	// TODO Auto-generated method stub
-    	
-    	
-    	step = Steps.DISCARD;  
+    	if (step == Steps.RUMMY && this.getHandOfPlayer(currentPlayer).length > 1) {
+            step = Steps.DISCARD;
+            throw new RummyException("Rummy not demonstrated", RummyException.RUMMY_NOT_DEMONSTRATED);
+    	}
+		if (this.getHandOfPlayer(currentPlayer).length == 0) {
+	         step = Steps.FINISHED;
+		}else {
+            step = Steps.DISCARD;
+        }  
     }
 
     @Override
@@ -488,26 +537,45 @@ public class Rummy implements PlayableRummy {
     	}
     	if (card == lastFromDP) {
     		throw new RummyException("Not valid discard", RummyException.NOT_VALID_DISCARD);
-    	}
+    	}    	
     	String[] oldHand = this.getHandOfPlayer(currentPlayer);
     	boolean isInHand = false;
-    	int index = 0;
-    	int aimIndex = 0;
     	for (String cur : oldHand) {
     		if (cur == card) {
     			isInHand = true;
-    			aimIndex = index;
+    			break;
     		}
-    		index += 1;
     	}
     	if (isInHand == false) {
     		throw new RummyException("Expected cards", RummyException.EXPECTED_CARDS);
     	}
-    	for(int i = aimIndex; i < oldHand.length -1; i++){
-            oldHand[i] = oldHand[i + 1];
+    	
+    	ArrayList<String> tempHand = new ArrayList<String>();
+    	for (String cur : oldHand) {
+    		tempHand.add(0, cur);
     	}
-    	handOfPlayer.replace(currentPlayer, oldHand);
+    	
+    	for (int i = 0; i < oldHand.length; i++) {
+			if (card == oldHand[i]) {
+				tempHand.remove(card);
+				break;
+    			
+    		}
+    	}
+    	
+    	String[] newHand = new String[tempHand.size()];
+    	for (int i = 0; i < tempHand.size(); i++) {
+    		newHand[i] = tempHand.get(i);
+    	}
+    	
+    	handOfPlayer.replace(currentPlayer, newHand);
     	cardsInDiscardPile.add(0, card);
+    	
+		if (this.getHandOfPlayer(currentPlayer).length == 0) {
+	          step = Steps.FINISHED;
+	          return;
+		}
+	          
     	step = Steps.DRAW;
     	if (currentPlayer == players.length - 1) {
         	currentPlayer = 0;
