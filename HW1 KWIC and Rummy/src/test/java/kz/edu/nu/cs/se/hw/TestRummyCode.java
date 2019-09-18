@@ -79,14 +79,14 @@ public class TestRummyCode {
         
         shuffle_1(rummy);
         
-        rummy.initialDeal();
-
+        rummy.initialDeal();      
+        
         for (int i = 0; i < 38; i++) {
             rummy.drawFromDeck();
             rummy.finishMeld();
             rummy.discard(rummy.getHandOfPlayer(rummy.getCurrentPlayer())[0]);
         }
-        System.out.println(rummy.getTopCardOfDiscardPile());
+        
         assertTrue("Long game, player", rummy.getCurrentPlayer() == 2);
         assertTrue("Long game, cards in deck", rummy.getNumCardsInDeck() == 34);
         assertTrue("Long game, top card of discard", rummy.getTopCardOfDiscardPile().equals("2H"));
@@ -538,7 +538,11 @@ public class TestRummyCode {
 
         // turn 1
         rummy.drawFromDeck();
-        rummy.declareRummy();
+        try {
+        	rummy.declareRummy();
+        }catch (Exception e) {
+        	System.out.println(e);
+        }
         assertTrue("Game 4, turn 1, rummy declared", rummy.getCurrentStep() == Steps.RUMMY);
         rummy.meld("AC", "AD", "AH", "AS", "AM");
         try {
