@@ -451,8 +451,6 @@ public class Rummy implements PlayableRummy {
     		melds.set(meldIndex, updatedMeld);
     	}
     	else {
-    		char start = meldToAdd[0].charAt(0);
-    		char end = meldToAdd[meldToAdd.length -1].charAt(0);
     		
     		int length = meldToAdd.length + cards.length;
 	    	String[] updatedMeld = new String[length];
