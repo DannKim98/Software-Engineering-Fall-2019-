@@ -22,12 +22,11 @@ public class PagingService {
     }
 
     @GET
-    public Response getMyList(@QueryParam("size") int size) {   	
+    public Response getMyList(@QueryParam("page") int size) {   	
         Gson gson = new Gson();
         String json;
-        
         PagedHelper p = new PagedHelper();
-    	System.out.println(size);
+    	
         if (size == 0) {
             p.setList(list);
         } else {

@@ -20,14 +20,24 @@ function updateList() {
     });
 }
 
-function getListItems(size) {
+function getListItems(page) {
     $.ajax({
-        url : 'services/items?page=' + size.toString(),
+        url : 'services/items?page='.concat(page),
         dataType : 'json',
         success : function(r) {
             app.items = r.list;
 			app.nextpage = r.next;
-			app.prevpage = r.prev;			
+			app.prevpage = r.prev;
+			if (app.prevpage == "0"){
+				$("#prev-button").prop('disabled', true);
+			}else{
+				$("#prev-button").prop('disabled', false);
+			}
+			if (app.nextpage == "11"){
+				$("#next-button").prop('disabled', true);
+			}else{
+				$("#next-button").prop('disabled', false);
+			}
             updateList();
         }
     });
@@ -42,14 +52,14 @@ function sendListItem() {
 }
 
 $(document).ready(function () { 
-    getListItems(prevpage + 1);
+    getListItems("1");
     
     $("#prev-button").on('click', function () {
-        getListItems(prevpage);
+        getListItems(app.prevpage);
     });
     
     $("#next-button").on('click', function () {
-        getListItem(nextpage);
+        getListItems(app.nextpage);
     });
     
 });
@@ -65,8 +75,6 @@ $(document).ready(function () {
 <br>
 <button id="prev-button">Previous</button>
 <button id="next-button">Next</button>
-<p>
-<a href="services/items">Link to List Items API</a>
-</p>
+
 </body>
 </html>
